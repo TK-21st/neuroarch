@@ -239,11 +239,11 @@ class TestNXTools(TestCase):
     def test_iso_attr_diff_multidigraph_multiedges(self):
         g0 = nx.MultiDiGraph()
         g0.add_node(0, **{'name': 'foo',
-                                  'node_type': 'neuron'})
+                                    'node_type': 'neuron'})
         g0.add_node(1, **{'name': 'bar',
-                                  'node_type': 'neuron'})
+                                    'node_type': 'neuron'})
         g0.add_node(2, **{'name': 'foo-bar',
-                                  'node_type': 'synapse'})
+                                    'node_type': 'synapse'})
         g0.add_edge(0, 2, **{'edge_type': 'data'})
         g0.add_edge(0, 2, **{'edge_type': 'data'})
         g0.add_edge(2, 1, **{'edge_type': 'data'})
@@ -279,7 +279,7 @@ class TestNXTools(TestCase):
         self.assertDictEqual(node_diff, {})
         self.assertDictEqual(edge_diff, 
             {((0, 2, 0), ('a', 'c', 1)): 
-             {'values_changed': ["root['edge_type']: 'data' ===> 'xxxx'"]}})
+             {'values_changed': {"root['edge_type']": {'new_value': 'xxxx', 'old_value': 'data'}}}})
 
     def _attr_match(self, a, b):
         return False if deepdiff.DeepDiff(a, b) else True
