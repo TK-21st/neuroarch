@@ -15,13 +15,16 @@ import re
 import daff
 import pandas as pd
 
-def diff_edges(old, new, full_replace):
+
+def diff_edges(old, new, full_replace=True):
     return take_diff('edge', old, new, full_replace)
-    
-def diff_nodes(old, new, full_replace):
+
+
+def diff_nodes(old, new, full_replace=True):
     return take_diff('node', old, new, full_replace)
-    
-def take_diff(diff_type, old, new, full_replace):
+
+
+def take_diff(diff_type, old, new, full_replace=True):
     """
     Find differences between original and modified DataFrame instances.
 
@@ -29,6 +32,8 @@ def take_diff(diff_type, old, new, full_replace):
     ----------
     old, new : pandas.DataFrame
          DataFrame instances to compare.
+    full_replace: bool, optional
+         set to `False` to update only changed fields in row
 
     Results
     -------
@@ -42,25 +47,25 @@ def take_diff(diff_type, old, new, full_replace):
 
     assert isinstance(old, pd.DataFrame) and \
         isinstance(new, pd.DataFrame)
-    
+
     # Move indices into first column and diff:
-    if diff_type=='edge':
-        old.index = old['out'].rename('id').str.cat(old['class'], sep=' ').str.cat(old['in'], sep=' ')
-        new.index = new['out'].rename('id').str.cat(new['class'], sep=' ').str.cat(new['in'], sep=' ')
+    if diff_type == 'edge':
+        old.index = old['out'].rename('id').str.cat(
+            old['class'], sep=' ').str.cat(old['in'], sep=' ')
+        new.index = new['out'].rename('id').str.cat(
+            new['class'], sep=' ').str.cat(new['in'], sep=' ')
         new = new.drop_duplicates()
-        
+
     # Ensure that ids in each DataFrame index are unique:
     assert len(old.index) == len(set(old.index))
     assert len(new.index) == len(set(new.index))
-    
-    
-    # Move column names into first row:
-    old = pd.concat((pd.DataFrame([old.columns], columns=old.columns), 
-                   old.copy()))
-    new = pd.concat((pd.DataFrame([new.columns], columns=new.columns),
-                   new.copy()))
 
-       
+    # Move column names into first row:
+    old = pd.concat((pd.DataFrame([old.columns], columns=old.columns),
+                     old.copy()))
+    new = pd.concat((pd.DataFrame([new.columns], columns=new.columns),
+                     new.copy()))
+
     data = daff.Coopy.diff(old.reset_index().values,
                            new.reset_index().values).data
     df = pd.DataFrame(data)
@@ -81,11 +86,11 @@ def take_diff(diff_type, old, new, full_replace):
 
     # Entries to delete:
     del_dict = dict()
-    
+
     # If there is a column-wide diff operation, the @@ will appear in the second
     # row of the diff output:
     add_dict = dict()
-    
+
     if df.ix[0, 0] == '@@':
         colname_row = 0
         start_row = 1
@@ -130,7 +135,7 @@ def take_diff(diff_type, old, new, full_replace):
                     for row_val, col in zip(df.ix[i][1:], df.ix[colname_row][1:]):
                         if '->' in str(row_val):
                             mod_dict[id][col] = new.ix[id][col]
-        ## cols that have --- or +++ need to have all fields removed/added
+        # cols that have --- or +++ need to have all fields removed/added
         if df.ix[0, 0] == '!':
             for col_val, col in zip(df.ix[edit_row][1:], df.ix[colname_row][1:]):
                 if id not in mod_dict:
@@ -139,6 +144,5 @@ def take_diff(diff_type, old, new, full_replace):
                     mod_dict[id][col] = new.ix[id][col]
                 elif '---' in str(col_val):
                     mod_dict[id][col] = None
-    
-    
+
     return {'mod': mod_dict, 'del': del_dict, 'add': add_dict}

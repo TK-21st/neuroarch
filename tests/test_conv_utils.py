@@ -8,7 +8,9 @@ import deepdiff
 import networkx as nx
 import pandas as pd
 
-match = lambda a, b: False if deepdiff.DeepDiff(a, b) else True
+
+def match(a, b): return False if deepdiff.DeepDiff(a, b) else True
+
 
 class TestConvUtils(TestCase):
     def _create_nx_graph(self):
@@ -30,7 +32,7 @@ class TestConvUtils(TestCase):
         return g
 
     def _create_pandas_graph(self):
-        df_node = pd.DataFrame({'name': ['foo', 'bar', 'baz', 
+        df_node = pd.DataFrame({'name': ['foo', 'bar', 'baz',
                                          'foo-bar', 'foo-baz'],
                                 'class': ['neuron', 'neuron', 'neuron',
                                           'synapse', 'synapse']})
@@ -38,7 +40,7 @@ class TestConvUtils(TestCase):
                                 'in': [3, 1, 4, 2],
                                 'class': ['data', 'data', 'data', 'data']})
         return df_node, df_edge
-        
+
     def test_pandas_to_nx(self):
         df_node, df_edge = self._create_pandas_graph()
         g_nx = self._create_nx_graph()
@@ -55,6 +57,7 @@ class TestConvUtils(TestCase):
             set([tuple(v) for v in df_node_nx.values])
         assert set([tuple(v) for v in df_edge_pandas.values]) == \
             set([tuple(v) for v in df_edge_nx.values])
+
 
 if __name__ == '__main__':
     main()

@@ -18,6 +18,7 @@ import deepdiff
 import networkx as nx
 import numpy as np
 
+
 def nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
     """
     Filter nodes in list by specific attribute value and comparison operator.
@@ -49,11 +50,12 @@ def nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(nbunch) and not isinstance(nbunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
-    return [n for n in nbunch if attr in g.node[n] \
-                and _op(g.node[n][attr], value)]
+    return [n for n in nbunch if attr in g.node[n]
+            and _op(g.node[n][attr], value)]
+
 
 def all_nodes_has(g, attr, value, op=operator.eq, flags=0):
     """
@@ -83,6 +85,7 @@ def all_nodes_has(g, attr, value, op=operator.eq, flags=0):
     """
 
     return nodes_has(g, g.nodes(), attr, value, op, flags)
+
 
 def edges_has(g, ebunch, attr, value, op=operator.eq, flags=0):
     """
@@ -116,17 +119,18 @@ def edges_has(g, ebunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(ebunch) and not isinstance(ebunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
     if isinstance(g, nx.MultiDiGraph):
-        return [(i, j, k) for (i, j, k) in ebunch \
-                if attr in g.edge[i][j][k] and \
-                _op(g.edge[i][j][k][attr], value)]
+        return [(i, j, k) for (i, j, k) in ebunch
+                if attr in g.adj[i][j][k] and
+                _op(g.adj[i][j][k][attr], value)]
     else:
-        return [(i, j) for (i, j) in ebunch \
-                if attr in g.edge[i][j] and \
-                _op(g.edge[i][j][attr], value)]
+        return [(i, j) for (i, j) in ebunch
+                if attr in g.adj[i][j] and
+                _op(g.adj[i][j][attr], value)]
+
 
 def all_edges_has(g, attr, value, op=operator.eq, flags=0):
     """
@@ -161,6 +165,7 @@ def all_edges_has(g, attr, value, op=operator.eq, flags=0):
         e = g.edges()
     return edges_has(g, e, attr, value, op, flags)
 
+
 def out_nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
     """
     Find outgoing nodes with specific attribute value.
@@ -192,14 +197,15 @@ def out_nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(nbunch) and not isinstance(nbunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
     result = set()
     for n in nbunch:
-        result.update([n for n in g.successors(n) \
+        result.update([n for n in g.successors(n)
                        if attr in g.node[n] and _op(g.node[n][attr], value)])
     return list(result)
+
 
 def in_nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
     """
@@ -232,14 +238,15 @@ def in_nodes_has(g, nbunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(nbunch) and not isinstance(nbunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
     result = set()
     for n in nbunch:
-        result.update([n for n in g.predecessors(n) \
+        result.update([n for n in g.predecessors(n)
                        if attr in g.node[n] and _op(g.node[n][attr], value)])
     return list(result)
+
 
 def out_edges_has(g, nbunch, attr, value, op=operator.eq, flags=0):
     """
@@ -273,20 +280,21 @@ def out_edges_has(g, nbunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(nbunch) and not isinstance(nbunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
     result = set()
     for n in nbunch:
         if isinstance(g, nx.MultiDiGraph):
-            result.update([(i, j, k) for (i, j, k, data) in \
-                           g.out_edges([n], data=True, keys=True) \
+            result.update([(i, j, k) for (i, j, k, data) in
+                           g.out_edges([n], data=True, keys=True)
                            if attr in data and _op(data[attr], value)])
         else:
-            result.update([(i, j) for (i, j, data) in \
-                           g.out_edges([n], data=True) \
+            result.update([(i, j) for (i, j, data) in
+                           g.out_edges([n], data=True)
                            if attr in data and _op(data[attr], value)])
     return list(result)
+
 
 def in_edges_has(g, nbunch, attr, value, op=operator.eq, flags=0):
     """
@@ -320,20 +328,21 @@ def in_edges_has(g, nbunch, attr, value, op=operator.eq, flags=0):
 
     assert np.iterable(nbunch) and not isinstance(nbunch, str)
     if op in [re.search, re.match]:
-        _op = lambda s, p: op(p, s, flags)
+        def _op(s, p): return op(p, s, flags)
     else:
         _op = op
     result = set()
     for n in nbunch:
         if isinstance(g, nx.MultiDiGraph):
-            result.update([(i, j, k) for (i, j, k, data) in \
-                           g.in_edges([n], data=True, keys=True) \
+            result.update([(i, j, k) for (i, j, k, data) in
+                           g.in_edges([n], data=True, keys=True)
                            if attr in data and _op(data[attr], value)])
         else:
-            result.update([(i, j) for (i, j, data) in \
-                           g.in_edges([n], data=True) \
+            result.update([(i, j) for (i, j, data) in
+                           g.in_edges([n], data=True)
                            if attr in data and _op(data[attr], value)])
     return list(result)
+
 
 def find_nonmatching_dict_pairs(a, b):
     """
@@ -373,6 +382,7 @@ def find_nonmatching_dict_pairs(a, b):
             break
     return a, b
 
+
 def is_isomorphic_attr(g0, g1):
     """
     Check whether two property graphs are isomorphic.
@@ -385,17 +395,18 @@ def is_isomorphic_attr(g0, g1):
     ----------
     g0, g1 : networkx.Graph
         NetworkX graphs. Graphs must be of the same type.
-    
+
     Returns
     -------
     result : bool
         True if the graphs are isomorphic.
     """
-    
-    d = lambda a, b: False if deepdiff.DeepDiff(a, b) else True
+
+    def d(a, b): return False if deepdiff.DeepDiff(a, b) else True
     return nx.isomorphism.is_isomorphic(g0, g1,
                                         node_match=d,
                                         edge_match=d)
+
 
 def iso_attr_diff(g0, g1):
     """
@@ -435,13 +446,13 @@ def iso_attr_diff(g0, g1):
 
             # Find pairs of edge attributes that don't match:
             d0_nomatch, d1_nomatch = \
-                find_nonmatching_dict_pairs(g0.edge[i0][j0].values(), 
-                                            g1.edge[i1][j1].values())
+                find_nonmatching_dict_pairs(g0.adj[i0][j0].values(),
+                                            g1.adj[i1][j1].values())
 
             # Find the keys that correspond to the nonmatching pairs of
             # attributes:
-            d0_all = copy.deepcopy(g0.edge[i0][j0])
-            d1_all = copy.deepcopy(g1.edge[i1][j1])
+            d0_all = dict(copy.deepcopy(g0.adj[i0][j0]))
+            d1_all = dict(copy.deepcopy(g1.adj[i1][j1]))
             for d0, d1 in zip(d0_nomatch, d1_nomatch):
 
                 # Look for key corresponding to attribute dict.  Remove key if
@@ -462,6 +473,7 @@ def iso_attr_diff(g0, g1):
     else:
         raise ValueError('graph type not yet supported')
     return node_diff, edge_diff
+
 
 def read_gexf(path):
     """
@@ -496,13 +508,13 @@ def read_gexf(path):
     if isinstance(g, nx.MultiDiGraph):
         for n, m, k in g.edges(keys=True):
             try:
-                del g.edge[n][m][k]['id']
+                del g.adj[n][m][k]['id']
             except:
                 pass
     else:
         for n, m in g.edges():
             try:
-                del g.edge[n][m]['id']
+                del g.adj[n][m]['id']
             except:
                 pass
 
