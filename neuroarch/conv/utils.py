@@ -13,6 +13,7 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 
+
 def _find_field_types(d):
     """
     Create @fieldTypes property value for setting types when creating nodes with JSON content.    
@@ -25,6 +26,7 @@ def _find_field_types(d):
         elif isinstance(v, float) or isinstance(v, np.float64):
             field_types.append('%s=d' % k)
     return ','.join(field_types)
+
 
 def nx_to_pandas(g):
     """
@@ -60,6 +62,7 @@ def nx_to_pandas(g):
     df_edge = pd.DataFrame.from_records(props, index)
     return df_node, df_edge
 
+
 def pandas_to_nx(df_node, df_edge):
     """
     Convert directed multigraph stored as Pandas DataFrames into NetworkX MultiDiGraph.
@@ -82,7 +85,7 @@ def pandas_to_nx(df_node, df_edge):
     assert isinstance(df_edge, pd.DataFrame)
     g = nx.MultiDiGraph()
     for id, props in zip(df_node.index, df_node.to_dict('record')):
-        g.add_node(id, props)
+        g.add_node(id, **props)
     for id, props in zip(df_edge.index, df_edge.to_dict('record')):
         from_id = props['out']
         to_id = props['in']
