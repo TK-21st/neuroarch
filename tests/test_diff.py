@@ -10,23 +10,31 @@ from neuroarch.diff import diff_nodes
 class TestDiff(TestCase):
     def test_mod_row(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 2, 9], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
-        self.assertDictEqual(diff_nodes(df1, df2),
+                            index=['w', 'x', 'y'])
+        self.assertDictEqual(diff_nodes(df1, df2), # defaults to fullreplace=True
                              {'add': {},
                               'del': {},
                               'mod': {'y': {'a': 9, 'b': 6}}})
+        self.assertDictEqual(diff_nodes(df1, df2, False),
+                             {'add': {},
+                              'del': {},
+                              'mod': {'y': {'a': 9}}})
 
     def test_mod_row_int_ind(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                            index=[0, 1, 2])
         df2 = pd.DataFrame({'a': [1, 2, 9], 'b': [4, 5, 6]},
                            index=[0, 1, 2])
-        self.assertDictEqual(diff_nodes(df1, df2),
+        self.assertDictEqual(diff_nodes(df1, df2,True),
                              {'add': {},
                               'del': {},
                               'mod': {2: {'a': 9, 'b': 6}}})
+        self.assertDictEqual(diff_nodes(df1, df2,False),
+                             {'add': {},
+                              'del': {},
+                              'mod': {2: {'a': 9}}})
 
     def test_add_row(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
@@ -80,22 +88,28 @@ class TestDiff(TestCase):
 
     def test_add_col(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6],
                             'c': ['p', 'q', 'r']},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         self.assertDictEqual(diff_nodes(df1, df2),
                              {'add': {},
                               'mod': {'w': {'a': 1, 'b': 4, 'c': 'p'},
                                       'x': {'a': 2, 'b': 5, 'c': 'q'},
                                       'y': {'a': 3, 'b': 6, 'c': 'r'}},
                               'del': {}})
+        self.assertDictEqual(diff_nodes(df1, df2, False),
+                             {'add': {},
+                              'mod': {'w': {'c': 'p'},
+                                      'x': {'c': 'q'},
+                                      'y': {'c': 'r'}},
+                              'del': {}})                              
 
     def test_del_col(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 2, 3]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         self.assertDictEqual(diff_nodes(df1, df2),
                              {'add': {},
                               'mod': {'w': {'a': 1}, 'x': {'a': 2}, 'y': {'a': 3}},
@@ -103,9 +117,9 @@ class TestDiff(TestCase):
 
     def test_ren_col(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 2, 3], 'c': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         self.assertDictEqual(diff_nodes(df1, df2),
                              {'add': {},
                               'mod': {'w': {'a': 1, 'c': 4},
@@ -181,9 +195,9 @@ class TestDiff(TestCase):
 
     def test_del_row_add_col(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 3], 'b': [4, 6], 'c': [7, 9]},
-                           index=['w', 'y'])
+                            index=['w', 'y'])
         self.assertDictEqual(diff_nodes(df1, df2),
                              {'add': {},
                               'mod': {'w': {'a': 1, 'b': 4, 'c': 7},
@@ -192,9 +206,9 @@ class TestDiff(TestCase):
 
     def test_del_row_del_col(self):
         df1 = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]},
-                           index=['w', 'x', 'y'])
+                            index=['w', 'x', 'y'])
         df2 = pd.DataFrame({'a': [1, 3], 'b': [4, 6]},
-                           index=['w', 'y'])
+                            index=['w', 'y'])
         self.assertDictEqual(diff_nodes(df1, df2),
                              {'add': {},
                               'mod': {'w': {'a': 1, 'b': 4},

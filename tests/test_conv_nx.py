@@ -9,13 +9,19 @@ import pyorient
 import networkx as nx
 
 db_name = 'neuroarch_test_db'
-username = 'admin'
-passwd = 'admin'
+# username = 'admin'
+# passwd = 'admin'
+
+username = 'root'
+passwd = 'root'
+
 
 class TestConvNetworkX(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = pyorient.OrientDB('localhost', 2424)
+        # http://172.17.0.4:2480/studio/index.html
+        cls.client = pyorient.OrientDB('172.20.0.2', 2424)
+        # cls.client = pyorient.OrientDB('localhost', 2424)
         cls.client.connect(username, passwd)
         if cls.client.db_exists(db_name):
             cls.client.db_drop(db_name)

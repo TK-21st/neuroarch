@@ -94,23 +94,45 @@ def take_diff(diff_type, old, new, full_replace=True):
     if df.iloc[0, 0] == '@@':
         colname_row = 0
         start_row = 1
+        if len(df) == 1:  # no change
+            return {'mod': mod_dict, 'del': del_dict, 'add': add_dict}
     else:
         edit_row = 0
         colname_row = 1
         start_row = 2
+    
+    # case for only column rename and delete
+    if df.iloc[0,0] =='!' and len(df)==2:
+        if full_replace:
+            mod_dict = new.iloc[1:].to_dict(orient='index')
+        else:
+            # cols with no-ops in new df
+            noop_cols = [df.iloc[1,i+2] for i,k in enumerate(df.iloc[0][2:].values) if len(k)==0]
+            op_cols = list(set(new.iloc[0,:].values) - set(noop_cols))
+            mod_dict = new.iloc[1:,:]
+            mod_dict = mod_dict[op_col].to_dict(orient='index')
+        return {'mod': mod_dict, 'del': del_dict, 'add': add_dict}
+
+
+    print(df)
+    print(new)
+    print(old)
     # Entries to add:
     for i in xrange(start_row, len(df)):
         op = df.iloc[i][0]
         id = df.iloc[i][1]
+        print(op,id, {'add':add_dict,'mod': mod_dict,'del': del_dict})
+        print('-----------------')
         if op == '...' or op == '':
             continue
         elif op == '+++':
-            add_dict[id] = new.iloc[id].to_dict()
+            add_dict[id] = new.loc[id].to_dict()
         elif op == '---':
             del_dict[id] = None
+            continue
         elif op == '+':
             if full_replace:
-                mod_dict[id] = new.iloc[id].to_dict()
+                mod_dict[id] = new.loc[id].to_dict()
         elif '->' in op:
             # Renaming an ID requires deletion of the original row and creation
             # of a new row:
@@ -123,25 +145,27 @@ def take_diff(diff_type, old, new, full_replace=True):
                 new_id = new.index.dtype.type(new_id)
 
                 del_dict[old_id] = None
-                add_dict[new_id] = new.iloc[new_id].to_dict()
+                add_dict[new_id] = new.loc[new_id].to_dict()
             else:
                 # If full_replace then update all fields for rows that have any change,
                 # else only update the fields with changes
                 if full_replace:
-                    mod_dict[id] = new.iloc[id].to_dict()
+                    mod_dict[id] = new.loc[id].to_dict()
                 else:
                     if not id in mod_dict:
                         mod_dict[id] = dict()
                     for row_val, col in zip(df.iloc[i][1:], df.iloc[colname_row][1:]):
                         if '->' in str(row_val):
-                            mod_dict[id][col] = new.iloc[id][col]
+                            mod_dict[id][col] = new.loc[id][col]
         # cols that have --- or +++ need to have all fields removed/added
         if df.iloc[0, 0] == '!':
             for col_val, col in zip(df.iloc[edit_row][1:], df.iloc[colname_row][1:]):
-                if id not in mod_dict:
+                print('haha:::',id,col_val,col)
+                if id not in mod_dict and id not in del_dict:
                     mod_dict[id] = dict()
                 if '+++' in str(col_val):
-                    mod_dict[id][col] = new.iloc[id][col]
+                    if op != '---':
+                        mod_dict[id][col] = new.loc[id][col]
                 elif '---' in str(col_val):
                     mod_dict[id][col] = None
 

@@ -6,15 +6,19 @@ import pyorient
 import pandas as pd
 
 db_name = 'neuroarch_test_db'
-username = 'admin'
-passwd = 'admin'
+# username = 'admin'
+# passwd = 'admin'
+
+username = 'root'
+passwd = 'root'
 
 match = lambda a, b: False if deepdiff.DeepDiff(a, b) else True
 
 class TestConvPandas(TestCase):    
     @classmethod
     def setUpClass(cls):
-        cls.client = pyorient.OrientDB('localhost', 2424)
+        cls.client = pyorient.OrientDB('172.20.0.2', 2424)
+        # cls.client = pyorient.OrientDB('localhost', 2424)
         cls.client.connect(username, passwd)
         if cls.client.db_exists(db_name):
             cls.client.db_drop(db_name)
