@@ -98,11 +98,10 @@ class LarvaLoader(object):
                 neuropil = neuropil.upper()
 
             # Check if neuropil exists
-            npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil]).first()
+            npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil][0]).first()
             if not npl:
-                npl = self.g_orient.Neuropils.create( \
-                            name=LarvaLoader.neuropils[neuropil],
-                            synonyms=LarvaLoader.neuropils[neuropil])
+                npl = self.g_orient.Neuropils.create(name=LarvaLoader.neuropils[neuropil][0])
+                npl.synonyms=LarvaLoader.neuropils[neuropil][1]
                 self.logger.info('created node: {0}({1})'.format(npl.element_type, npl.name))
 
             if any([k in neuron.name for k in LarvaLoader.LN_keys]):
@@ -114,10 +113,9 @@ class LarvaLoader(object):
 
             # Create Neuron Node
 
-            n = self.g_orient.Neurons.create(\
-                name=neuron.name,
-                uname=neuron.uname,
-                locality=locality)
+            n = self.g_orient.Neurons.create(name=neuron.name)
+            n.uname=neuron.uname
+            n.locality=locality
             self.logger.info('created node: {0}({1})'.format(n.element_type, n.name))
             neuron_nodes_dict[neuron.uname] = n
             # Create Neurotransmitter Node if required
@@ -127,24 +125,23 @@ class LarvaLoader(object):
             nt_type = [k in neuron.name for k in nt_available_names]
             if sum(nt_type) > 0:
                 neurotransmitter = LarvaLoader.neurotransmitter_map[nt_available_names[nt_type]]
-                nt = self.g_orient.NeurotransmitterDatas.create( \
-                    name=neuron.uname,
-                    Transmitters=neurotransmitter)
+                nt = self.g_orient.NeurotransmitterDatas.create(name=neuron.uname)
+                nt.Transmitters=neurotransmitter
                 self.logger.info('created node: {0}({1})'.format(nt.element_type, nt.name))
             else:
                 neurotransmitter = None
 
             # Create Morphology Node
-            df = load_swc('%s/%s.swc' % (morph_dir, neuron.skeleton_id))
-            content = byteify(json.loads(df.to_json()))
+            nm_df = load_swc('%s/%s.swc' % (morph_dir, neuron.skeleton_id))
+            content = byteify(json.loads(nm_df.to_json()))
             content = {}
-            content['x'] = df['x'].tolist()
-            content['y'] = df['y'].tolist()
-            content['z'] = df['z'].tolist()
-            content['r'] = df['r'].tolist()
-            content['parent'] = df['parent'].tolist()
-            content['identifier'] = df['identifier'].tolist()
-            content['sample'] = df['sample'].tolist()
+            content['x'] = nm_df['x'].tolist()
+            content['y'] = nm_df['y'].tolist()
+            content['z'] = nm_df['z'].tolist()
+            content['r'] = nm_df['r'].tolist()
+            content['parent'] = nm_df['parent'].tolist()
+            content['identifier'] = nm_df['identifier'].tolist()
+            content['sample'] = nm_df['sample'].tolist()
 
             content.update({'name': neuron.uname })
 
@@ -175,10 +172,9 @@ class LarvaLoader(object):
             post_rows = conn_df[conn_df['presynaptic']==pre_neuron_name]
             pre_neuron_node = neuron_nodes_dict[pre_neuron_name]
             for idx, row in post_rows.iterrows():
-                syn = self.g_orient.Synapse.create(\
-                    name=row.uname,
-                    N=row.N,
-                    uname=row.uname)
+                syn = self.g_orient.Synapse.create(name=row.uname)
+                syn.N=row.N
+                syn.uname=row.uname
                 self.logger.info('created node: {0}({1})'.format(syn.element_type, syn.name))
 
                 content = {}
@@ -200,8 +196,7 @@ class LarvaLoader(object):
                 self.g_orient.SendsTo.create(pre_neuron_node, syn)
                 self.g_orient.SendsTo.create(syn, post_neuron_node)
                 neuropil = df.loc[df['uname']==pre_neuron_name, "neuropil"]
-                npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil]).first()
-
+                npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil][0]).first()
                 self.g_orient.Owns.create(npl, syn)
                 self.g_orient.HasData.create(syn, syn_nm)
 
