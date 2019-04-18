@@ -104,16 +104,16 @@ class LarvaLoader(object):
                 npl.synonyms=LarvaLoader.neuropils[neuropil][1]
                 self.logger.info('created node: {0}({1})'.format(npl.element_type, npl.name))
 
-            if any([k in neuron.name for k in LarvaLoader.LN_keys]):
+            if any([k in neuron['name'] for k in LarvaLoader.LN_keys]):
                 locality = True
-            elif any([k in neuron.name for k in LarvaLoader.PN_keys + LarvaLoader.input_keys]):
+            elif any([k in neuron['name'] for k in LarvaLoader.PN_keys + LarvaLoader.input_keys]):
                 locality = False
             else:
                 locality = True # default to local neuron
 
             # Create Neuron Node
 
-            n = self.g_orient.Neurons.create(name=neuron.name)
+            n = self.g_orient.Neurons.create(name=neuron['name'])
             n.uname=neuron.uname
             n.locality=locality
             self.logger.info('created node: {0}({1})'.format(n.element_type, n.name))
@@ -122,7 +122,7 @@ class LarvaLoader(object):
             nt = None
             neurotransmitter = []
             nt_available_names = LarvaLoader.neurotransmitter_map.keys()
-            nt_type = [k in neuron.name for k in nt_available_names]
+            nt_type = [k in neuron['name'] for k in nt_available_names]
             if sum(nt_type) > 0:
                 neurotransmitter = LarvaLoader.neurotransmitter_map[nt_available_names[nt_type]]
                 nt = self.g_orient.NeurotransmitterDatas.create(name=neuron.uname)
