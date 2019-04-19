@@ -5,10 +5,11 @@
 # Distributed under the terms of the BSD license:
 # http://www.opensource.org/licenses/bsd-license
 
-import cPickle as pickle
+#import cPickle as pickle
 import copy
 import logging
 import sys
+import pdb
 
 import networkx as nx
 from pyorient.ogm import Graph, Config
@@ -117,83 +118,83 @@ class NTHULoader(object):
         ds_fc = self.g_orient.DataSources.query(name='FlyCircuit').first()
         if not ds_fc:
             ds_fc = self.g_orient.DataSources.create(name='FlyCircuit')
-        
-        with open(file_name, 'rb') as csvfile:
-            reader = csv.reader(csvfile, delimiter=';',)
-            i = -1
-            for neuron in reader:
-                i+=1
-                print i
-                # Process a neuron
-                # Name Dendrites Axons  Total  Neuropil Locality
-                #  0      1        2      3       4        5
 
-                #if neuron[4]=='unclear': continue
-                # Check if neuropil exists
-                npl = self.g_orient.Neuropils.query(name=NTHULoader.neuropils[neuron[4]][0]).first()
-                if not npl:
-                    npl = self.g_orient.Neuropils.create(\
-                                            name=NTHULoader.neuropils[neuron[4]][0],
-                                            synonyms=NTHULoader.neuropils[neuron[4]][1])
-                    self.logger.info('created node: {0}({1})'.format(npl.element_type, npl.name))
+        csv_df = pd.read_csv(file_name, delimiter=';', header=None)
+#        with open(file_name, 'rb') as csvfile:
+#            reader = csv.reader(csvfile, delimiter=';',)
+        for i,neuron in csv_df.iterrows():
+            print(i,neuron)
+            # Process a neuron
+            # Name Dendrites Axons  Total  Neuropil Locality
+            #  0      1        2      3       4        5
 
-                locality = True if neuron[5]=='LN' else False
-                # Create Neuron Node
-                n = self.g_orient.Neurons.create(name=neuron[0], locality=locality)
-                self.logger.info('created node: {0}({1})'.format(n.element_type, n.name))
-                
-                # Create Neurotransmitter Node if required
-                nt = None
-                neurotransmitter = []
-                for key in NTHULoader.neurotransmitter_map:
-                    if neuron[0].startswith(key):
-                        neurotransmitter.append(NTHULoader.neurotransmitter_map[key])
-                if neurotransmitter:
-                    nt = self.g_orient.NeurotransmitterDatas.create(name=neuron[0], Transmitters=neurotransmitter)
-                    self.logger.info('created node: {0}({1})'.format(nt.element_type, nt.name))
-                    
-                # Create Arborization Node
-                dendrites = {c.split(':')[0]:int(c.split(':')[1]) for c in neuron[1].split(',')}
-                axons = {c.split(':')[0]:int(c.split(':')[1]) for c in neuron[2].split(',')}
-                arb = self.g_orient.ArborizationDatas.create(name=neuron[0], dendrites=dendrites, axons=axons)
-                self.logger.info('created node: {0}({1})'.format(arb.element_type, arb.name))
-                
-                # Create Morphology Node
-                df = load_swc('%s/%s.swc' % (morph_dir, neuron[0]))
-                content = byteify(json.loads(df.to_json()))
-                content = {}
-                content['x'] = df['x'].tolist()
-                content['y'] = df['y'].tolist()
-                content['z'] = df['z'].tolist()
-                content['r'] = df['r'].tolist()
-                content['parent'] = df['parent'].tolist()
-                content['identifier'] = df['identifier'].tolist()
-                content['sample'] = df['sample'].tolist()
-            
-            
-                content.update({'name': neuron[0]})
-    
-                nm = self.g_orient.client.record_create(self.cluster_ids['MorphologyData'][0],
-                                                       {'@morphologydata': content})
-                nm = self.g_orient.get_element(nm._rid)
-            
-                
-                # Add content to new node:
-                self.g_orient.client.command('update %s content %s' % \
-                                         (nm._id, json.dumps(content)))
+            #if neuron[4]=='unclear': continue
+            # Check if neuropil exists
+            pdb.set_trace()
+            npl = self.g_orient.Neuropils.query(name=NTHULoader.neuropils[neuron[4]][0]).first()
+            if not npl:
+                npl = self.g_orient.Neuropils.create(\
+                                        name=NTHULoader.neuropils[neuron[4]][0],
+                                        synonyms=NTHULoader.neuropils[neuron[4]][1])
+                self.logger.info('created node: {0}({1})'.format(npl.element_type, npl.name))
 
-                
-                self.logger.info('created node: {0}({1})'.format(nm.element_type, nm.name))
-                
-                # Connect nodes
-                self.g_orient.Owns.create(npl, n)
-                self.g_orient.HasData.create(n, arb)
-                self.g_orient.HasData.create(n, nm)
-                if nt:
-                    self.g_orient.HasData.create(n, nt)
-                    self.g_orient.Owns.create(ds_fc, n)
-                self.g_orient.Owns.create(ds_fc, nm)
-                self.g_orient.Owns.create(ds_fc, arb)
+            locality = True if neuron[5]=='LN' else False
+            # Create Neuron Node
+            n = self.g_orient.Neurons.create(name=neuron[0], locality=locality)
+            self.logger.info('created node: {0}({1})'.format(n.element_type, n.name))
+
+            # Create Neurotransmitter Node if required
+            nt = None
+            neurotransmitter = []
+            for key in NTHULoader.neurotransmitter_map:
+                if neuron[0].startswith(key):
+                    neurotransmitter.append(NTHULoader.neurotransmitter_map[key])
+            if neurotransmitter:
+                nt = self.g_orient.NeurotransmitterDatas.create(name=neuron[0], Transmitters=neurotransmitter)
+                self.logger.info('created node: {0}({1})'.format(nt.element_type, nt.name))
+
+            # Create Arborization Node
+            dendrites = {c.split(':')[0]:int(c.split(':')[1]) for c in neuron[1].split(',')}
+            axons = {c.split(':')[0]:int(c.split(':')[1]) for c in neuron[2].split(',')}
+            arb = self.g_orient.ArborizationDatas.create(name=neuron[0], dendrites=dendrites, axons=axons)
+            self.logger.info('created node: {0}({1})'.format(arb.element_type, arb.name))
+
+            # Create Morphology Node
+            # df = load_swc('%s/%s.swc' % (morph_dir, neuron[0]))
+            # content = byteify(json.loads(df.to_json()))
+            # content = {}
+            # content['x'] = df['x'].tolist()
+            # content['y'] = df['y'].tolist()
+            # content['z'] = df['z'].tolist()
+            # content['r'] = df['r'].tolist()
+            # content['parent'] = df['parent'].tolist()
+            # content['identifier'] = df['identifier'].tolist()
+            # content['sample'] = df['sample'].tolist()
+
+
+            # content.update({'name': neuron[0]})
+
+            # nm = self.g_orient.client.record_create(self.cluster_ids['MorphologyData'][0],
+            #                                        {'@morphologydata': content})
+            # nm = self.g_orient.get_element(nm._rid)
+
+
+            # Add content to new node:
+            # self.g_orient.client.command('update %s content %s' % \
+            #                          (nm._id, json.dumps(content)))
+
+
+            # self.logger.info('created node: {0}({1})'.format(nm.element_type, nm.name))
+
+            # Connect nodes
+            self.g_orient.Owns.create(npl, n)
+            self.g_orient.HasData.create(n, arb)
+#                self.g_orient.HasData.create(n, nm)
+            if nt:
+                self.g_orient.HasData.create(n, nt)
+                self.g_orient.Owns.create(ds_fc, n)
+#               self.g_orient.Owns.create(ds_fc, nm)
+            self.g_orient.Owns.create(ds_fc, arb)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,

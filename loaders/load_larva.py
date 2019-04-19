@@ -11,8 +11,7 @@ Some design choices:
 # All rights reserved.
 # Distributed under the terms of the BSD license:
 # http://www.opensource.org/licenses/bsd-license
-
-import cPickle as pickle
+import pdb
 import copy
 import logging
 import sys
@@ -82,7 +81,7 @@ class LarvaLoader(object):
         if not ds_fc:
             ds_fc = self.g_orient.DataSources.create(name='Janelia')
 
-        df = pd.read_csv(file_name)
+        df = pd.read_csv(file_name, delimiter=',')
         neuron_nodes_dict = {}
         for i, neuron in df.iterrows():
             print(i,neuron)
@@ -100,8 +99,9 @@ class LarvaLoader(object):
             # Check if neuropil exists
             npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil][0]).first()
             if not npl:
-                npl = self.g_orient.Neuropils.create(name=LarvaLoader.neuropils[neuropil][0])
-                npl.synonyms=LarvaLoader.neuropils[neuropil][1]
+                npl = self.g_orient.Neuropils.create(
+                    name=LarvaLoader.neuropils[neuropil][0],
+                    synonyms=LarvaLoader.neuropils[neuropil][1])
                 self.logger.info('created node: {0}({1})'.format(npl.element_type, npl.name))
 
             if any([k in neuron['name'] for k in LarvaLoader.LN_keys]):
@@ -112,21 +112,24 @@ class LarvaLoader(object):
                 locality = True # default to local neuron
 
             # Create Neuron Node
-
-            n = self.g_orient.Neurons.create(name=neuron['name'])
-            n.uname=neuron.uname
-            n.locality=locality
+            n = self.g_orient.Neurons.create(
+                name=neuron['name'],
+                uname=neuron.uname,
+                locality=locality)
             self.logger.info('created node: {0}({1})'.format(n.element_type, n.name))
             neuron_nodes_dict[neuron.uname] = n
             # Create Neurotransmitter Node if required
             nt = None
             neurotransmitter = []
-            nt_available_names = LarvaLoader.neurotransmitter_map.keys()
+            nt_available_names = list(LarvaLoader.neurotransmitter_map.keys())
             nt_type = [k in neuron['name'] for k in nt_available_names]
             if sum(nt_type) > 0:
-                neurotransmitter = LarvaLoader.neurotransmitter_map[nt_available_names[nt_type]]
-                nt = self.g_orient.NeurotransmitterDatas.create(name=neuron.uname)
-                nt.Transmitters=neurotransmitter
+                for _idx,_nt_df in enumerate(nt_type):
+                    if _nt_df:
+                        neurotransmitter.append(LarvaLoader.neurotransmitter_map[nt_available_names[_idx]])
+                nt = self.g_orient.NeurotransmitterDatas.create(
+                    name=neuron.uname,
+                    Transmitters=neurotransmitter)
                 self.logger.info('created node: {0}({1})'.format(nt.element_type, nt.name))
             else:
                 neurotransmitter = None
@@ -144,7 +147,6 @@ class LarvaLoader(object):
             content['sample'] = nm_df['sample'].tolist()
 
             content.update({'name': neuron.uname })
-
             nm = self.g_orient.client.record_create(self.cluster_ids['MorphologyData'][0],
                                                     {'@morphologydata': content})
             nm = self.g_orient.get_element(nm._rid)
@@ -158,25 +160,26 @@ class LarvaLoader(object):
 
             # Connect nodes
             self.g_orient.Owns.create(npl, n)  # neuropil owns neuron
-            # self.g_orient.HasData.create(n, arb)  # neuron owns arborization
             self.g_orient.HasData.create(n, nm)  # neuron owns morphological data
             if nt:  # neurotransmitter
                 self.g_orient.HasData.create(n, nt)  # neuron owns neurotransmitter data
                 self.g_orient.Owns.create(ds_fc, n)  # Datasource owns neuron
             self.g_orient.Owns.create(ds_fc, nm)    # datasource owns the morphologydata
-            # self.g_orient.Owns.create(ds_fc, arb)   # datasource owns the arborization
 
         # TODO:  add synapses
         conn_df = pd.read_csv(conn_file_name)
         for pre_neuron_name in conn_df.presynaptic.unique():
             post_rows = conn_df[conn_df['presynaptic']==pre_neuron_name]
-            pre_neuron_node = neuron_nodes_dict[pre_neuron_name]
+            pre_neuron_node = self.g_orient.Neurons.query(uname=pre_neuron_name).first()
             for idx, row in post_rows.iterrows():
-                syn = self.g_orient.Synapse.create(name=row.uname)
-                syn.N=row.N
-                syn.uname=row.uname
+                syn = self.g_orient.Synapses.create(
+                    name=row.uname,
+                    N=row.N,
+                    uname=row.uname)
+                
                 self.logger.info('created node: {0}({1})'.format(syn.element_type, syn.name))
 
+                
                 content = {}
                 content['x'] = literal_eval(','.join(row.x.replace("\n","").replace("  "," ").split(" ")))
                 content['y'] = literal_eval(','.join(row.y.replace("\n","").replace("  "," ").split(" ")))
@@ -191,11 +194,10 @@ class LarvaLoader(object):
                                                             {'@morphologydata': content})
                 syn_nm = self.g_orient.get_element(syn_nm._rid)
                 self.logger.info('created node: {0}({1})'.format(syn_nm.element_type, syn_nm.name))
-
-                post_neuron_node = neuron_nodes_dict[row.postsynaptic]
+                post_neuron_node = self.g_orient.Neurons.query(uname=row.postsynaptic).first()
                 self.g_orient.SendsTo.create(pre_neuron_node, syn)
                 self.g_orient.SendsTo.create(syn, post_neuron_node)
-                neuropil = df.loc[df['uname']==pre_neuron_name, "neuropil"]
+                neuropil = df.loc[df['uname']==pre_neuron_name, "neuropil"].item()
                 npl = self.g_orient.Neuropils.query(name=LarvaLoader.neuropils[neuropil][0]).first()
                 self.g_orient.Owns.create(npl, syn)
                 self.g_orient.HasData.create(syn, syn_nm)
@@ -205,11 +207,12 @@ class LarvaLoader(object):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout,
                         format='%(asctime)s %(name)s %(levelname)s %(message)s')
-    g_orient = Graph(Config.from_url('/na_server_larva','root', 'root', initial_drop=True,
+    g_orient = Graph(Config.from_url('/na_server_larva','root', 'root', initial_drop=False,
                                      serialization_type=OrientSerialization.Binary))# set to True to erase the database
     g_orient.create_all(Node.registry)
     g_orient.create_all(Relationship.registry)
 
     vl = LarvaLoader(g_orient)
 
-    vl.load_neurons('all_neurons_reference.csv', 'all_connectors.csv', 'swc')
+    NA_DIR = '~/Projects/FFBO/NA/'
+    vl.load_neurons(NA_DIR+'all_neurons_reference.csv', NA_DIR+'all_connectors.csv', NA_DIR+'swc')
